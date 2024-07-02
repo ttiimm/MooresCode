@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">MorseCode</string>
+    <string name="app_name">Moore\'s Code</string>
     <string name="enter_message">Enter Message</string>
     <string name="sending">Sending… %s</string>
     <string name="tx">Transmit</string>
