@@ -3,7 +3,6 @@ package net.ttiimm.morsecode
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,9 +13,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -25,20 +26,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import net.ttiimm.morsecode.data.FakeExampleMessages
-import net.ttiimm.morsecode.model.Message
+import androidx.lifecycle.viewmodel.compose.viewModel
+import net.ttiimm.morsecode.ui.ChatViewModel
+import net.ttiimm.morsecode.ui.Message
+import net.ttiimm.morsecode.ui.MessageState
 import net.ttiimm.morsecode.ui.theme.MorseCodeTheme
-import java.time.Instant
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,15 +46,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             MorseCodeTheme {
                 Scaffold (
-                    topBar = {
-                        MorseCodeTopBar()
-                    },
-                    modifier = Modifier
-                        .fillMaxSize()
-                    ) { innerPadding ->
-                    Surface(
-                        modifier = Modifier.padding(innerPadding)
-                    ) {
+                    topBar = { MorseCodeTopBar() },
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
+                    Surface( modifier = Modifier.padding(innerPadding)) {
                         MorseCodeApp()
                     }
                 }
@@ -80,11 +75,10 @@ fun MorseCodeTopBar(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun MorseCodeApp(modifier: Modifier = Modifier) {
-    var messageInput by remember { mutableStateOf("") }
-    val messages by remember {
-        mutableStateOf(FakeExampleMessages)
-    }
+fun MorseCodeApp(
+    chatViewModel: ChatViewModel = viewModel()
+) {
+    val chatUiState by chatViewModel.uiState.collectAsState()
     val scrollState = rememberLazyListState()
 
     Column {
@@ -94,20 +88,19 @@ fun MorseCodeApp(modifier: Modifier = Modifier) {
                 .weight(0.5F)
         ) {
             MessageBubbles(
-                messages = messages,
+                messages = chatUiState.messages,
                 scrollState = scrollState
             )
         }
 
         Row {
             MessageInput(
-                message = messageInput,
-                onMessageChange = { messageInput = it },
+                message = chatViewModel.currentMessage,
+                onMessageChange = { chatViewModel.updateCurrentMessage(it) },
                 doSend = {
-                    messages.add(Message(messageInput, Instant.now(), true))
-                    messageInput = ""
+                    chatViewModel.transmit()
                 },
-                modifier = modifier
+                modifier = Modifier
                     .padding(top = 16.dp)
                     .fillMaxWidth()
             )
@@ -117,7 +110,7 @@ fun MorseCodeApp(modifier: Modifier = Modifier) {
 
 @Composable
 fun MessageBubbles(
-    messages: MutableList<Message>,
+    messages: List<Message>,
     scrollState: LazyListState,
     modifier: Modifier = Modifier
 ) {
@@ -139,9 +132,36 @@ fun MessageBubble(message: Message, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier
             .statusBarsPadding()
-            .padding(horizontal = 40.dp)
+            .padding(horizontal = 20.dp)
     ) {
-        Card (modifier = modifier) {
+        Card (
+            modifier = modifier,
+            colors = if (
+                    message.status == MessageState.SENDING ||
+                    message.status == MessageState.SENT
+                ) {
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer // Set background color
+                    )
+                } else {
+                    CardDefaults.cardColors()
+                },
+            shape = if (message.status == MessageState.SENDING ||
+                        message.status == MessageState.SENT
+                ) {
+                    RoundedCornerShape(
+                        topStart = 20.dp,
+                        topEnd = 20.dp,
+                        bottomEnd = 20.dp,
+                    )
+                } else {
+                    RoundedCornerShape(
+                        topStart = 20.dp,
+                        topEnd = 20.dp,
+                        bottomStart = 20.dp,
+                    )
+                }
+        ) {
             Text(
                 text = message.content,
                 style = MaterialTheme.typography.bodyMedium,
@@ -150,6 +170,10 @@ fun MessageBubble(message: Message, modifier: Modifier = Modifier) {
         }
         Text(
             text = message.datetime.toString(),
+            style = MaterialTheme.typography.labelSmall
+        )
+        Text(
+            text = message.status.toString(),
             style = MaterialTheme.typography.labelSmall
         )
     }

@@ -1,6 +1,7 @@
 package net.ttiimm.morsecode.data
 
-import net.ttiimm.morsecode.model.Message
+import net.ttiimm.morsecode.ui.Message
+import net.ttiimm.morsecode.ui.MessageState
 import java.time.Instant
 
 private val now = Instant.now()
@@ -9,56 +10,56 @@ val FakeExampleMessages = mutableListOf(
     Message(
         "hello",
         datetime = now.plusSeconds(1),
-        isMine = true
+        status = MessageState.RECEIVED
     ),
     Message(
         "hi",
         datetime = now.plusSeconds(2),
-        isMine = false
+        status = MessageState.SENT
     ),
     Message(
         "how are you?",
         datetime = now.plusSeconds(3),
-        isMine = true
+        status = MessageState.RECEIVED
     ),
     Message(
         "good",
         datetime = now.plusSeconds(4),
-        isMine = false
+        status = MessageState.SENT
     ),
     Message(
         "how are you?",
         datetime = now.plusSeconds(5),
-        isMine = true
+        status = MessageState.RECEIVED
     ),
     Message(
         "good",
         datetime = now.plusSeconds(6),
-        isMine = false
+        status = MessageState.SENT
     ),
     Message(
         "good",
         datetime = now.plusSeconds(7),
-        isMine = true
+        status = MessageState.RECEIVED
     ),
     Message(
         "thanks for the convo",
         datetime = now.plusSeconds(8),
-        isMine = false
+        status = MessageState.SENT
     ),
     Message(
         "you're welcome",
         datetime = now.plusSeconds(9),
-        isMine = true
+        status = MessageState.RECEIVED
     ),
     Message(
         "thank you",
         datetime = now.plusSeconds(10),
-        isMine = false
+        status = MessageState.SENT
     ),
     Message(
         "ok",
         datetime = now.plusSeconds(11),
-        isMine = true
+        status = MessageState.RECEIVED
     )
 )
