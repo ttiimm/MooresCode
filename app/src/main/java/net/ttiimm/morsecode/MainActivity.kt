@@ -1,5 +1,7 @@
 package net.ttiimm.morsecode
 
+import android.content.Context
+import android.hardware.camera2.CameraManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -23,12 +25,16 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -74,9 +80,12 @@ fun MorseCodeTopBar(modifier: Modifier = Modifier) {
     )
 }
 
+private const val BACK_CAMERA_IDX = 0
+
 @Composable
 fun MorseCodeApp(
-    chatViewModel: ChatViewModel = viewModel()
+    chatViewModel: ChatViewModel = viewModel(),
+    context: Context = LocalContext.current
 ) {
     val chatUiState by chatViewModel.uiState.collectAsState()
     val scrollState = rememberLazyListState()
@@ -103,6 +112,23 @@ fun MorseCodeApp(
                 modifier = Modifier
                     .padding(top = 16.dp)
                     .fillMaxWidth()
+            )
+        }
+
+        val checkedStatus = remember { mutableStateOf(false) }
+        Row {
+            Switch(
+                checked = checkedStatus.value,
+                onCheckedChange = {
+                    checkedStatus.value = it
+                    val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
+                    val cameraId = cameraManager.cameraIdList[BACK_CAMERA_IDX]
+                    if (checkedStatus.value) {
+                        cameraManager.setTorchMode(cameraId, true)
+                    } else {
+                        cameraManager.setTorchMode(cameraId, false)
+                    }
+                }
             )
         }
     }
