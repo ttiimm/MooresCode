@@ -1,6 +1,5 @@
 package net.ttiimm.morsecode.ui
 
-import android.content.Context
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,7 +28,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -37,6 +35,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.ttiimm.morsecode.R
+import net.ttiimm.morsecode.data.Message
+import net.ttiimm.morsecode.data.MessageState
 import net.ttiimm.morsecode.ui.theme.MorseCodeTheme
 
 val FROM_ME_STATUS = setOf(MessageState.SENDING, MessageState.SENT)
@@ -62,7 +62,7 @@ fun MorseCodeApp() {
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         Surface(modifier = Modifier.padding(innerPadding)) {
-            MorseCodeBody()
+            MorseCodeScreen()
         }
     }
 }
@@ -84,9 +84,8 @@ fun MorseCodeTopBar(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun MorseCodeBody(
-    chatViewModel: ChatViewModel = viewModel(),
-    context: Context = LocalContext.current
+fun MorseCodeScreen(
+    chatViewModel: ChatViewModel = viewModel(factory = ChatViewModel.Factory)
 ) {
     val chatUiState by chatViewModel.uiState.collectAsState()
     val scrollState = rememberLazyListState()
@@ -107,7 +106,7 @@ fun MorseCodeBody(
                 message = chatViewModel.currentMessage,
                 onMessageChange = { chatViewModel.updateCurrentMessage(it) },
                 doSend = {
-                    chatViewModel.transmit(context)
+                    chatViewModel.onTransmit()
                 },
                 modifier = Modifier
                     .padding(top = 16.dp)
@@ -211,13 +210,13 @@ fun MessageInput(
 @Preview(showBackground = true)
 @Composable
 fun MorseCodeAppPreview() {
-    MorseCodeBody()
+    MorseCodeScreen()
 }
 
 @Preview(showBackground = true)
 @Composable
 fun MorseCodeAppDarkThemePreview() {
     MorseCodeTheme(darkTheme = true) {
-        MorseCodeBody()
+        MorseCodeScreen()
     }
 }

@@ -1,8 +1,6 @@
 package net.ttiimm.morsecode.data
 
 import androidx.compose.runtime.mutableStateListOf
-import net.ttiimm.morsecode.ui.Message
-import net.ttiimm.morsecode.ui.MessageState
 import java.time.Instant
 
 private val now = Instant.now()
