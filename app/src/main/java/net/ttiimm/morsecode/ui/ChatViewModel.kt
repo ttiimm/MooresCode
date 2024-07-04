@@ -32,6 +32,8 @@ private const val SYMBOL_PAUSE_TIME_UNIT = DOT_TIME_UNIT
 private const val LETTER_PAUSE_TIME_UNIT = 3 * DOT_TIME_UNIT
 private const val WORD_PAUSE_TIME_UNIT = 7 * DOT_TIME_UNIT
 
+private const val BACK_CAMERA_IDX = 0
+
 
 class ChatViewModel : ViewModel() {
 
@@ -67,7 +69,7 @@ class ChatViewModel : ViewModel() {
 
     private fun flashCode(context: Context, translation: List<String>) {
         val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-        val cameraId = cameraManager.cameraIdList[0]
+        val cameraId = cameraManager.cameraIdList[BACK_CAMERA_IDX]
         for (symbol in translation) {
             for (char in symbol) {
                 if (char == '-') {
