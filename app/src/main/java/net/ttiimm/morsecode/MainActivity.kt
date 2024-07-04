@@ -101,13 +101,13 @@ fun MorseCodeApp(
                 scrollState = scrollState
             )
         }
-
+        val context = LocalContext.current
         Row {
             MessageInput(
                 message = chatViewModel.currentMessage,
                 onMessageChange = { chatViewModel.updateCurrentMessage(it) },
                 doSend = {
-                    chatViewModel.transmit()
+                    chatViewModel.transmit(context)
                 },
                 modifier = Modifier
                     .padding(top = 16.dp)
@@ -156,9 +156,7 @@ fun MessageBubbles(
 @Composable
 fun MessageBubble(message: Message, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier
-            .statusBarsPadding()
-            .padding(horizontal = 20.dp)
+        modifier = modifier.statusBarsPadding()
     ) {
         Card (
             modifier = modifier,
