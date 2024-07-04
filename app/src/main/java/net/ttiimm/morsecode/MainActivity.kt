@@ -1,7 +1,6 @@
 package net.ttiimm.morsecode
 
 import android.content.Context
-import android.hardware.camera2.CameraManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,14 +24,13 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -46,19 +44,41 @@ import net.ttiimm.morsecode.ui.Message
 import net.ttiimm.morsecode.ui.MessageState
 import net.ttiimm.morsecode.ui.theme.MorseCodeTheme
 
+val FROM_ME_STATUS = setOf(MessageState.SENDING, MessageState.SENT)
+val FROM_ME_SHAPE = RoundedCornerShape(
+    topStart = 20.dp,
+    topEnd = 20.dp,
+    // point towards left
+    bottomStart = 0.dp,
+    bottomEnd = 20.dp
+)
+val FROM_YOU_SHAPE = RoundedCornerShape(
+    topStart = 20.dp,
+    topEnd = 20.dp,
+    bottomStart = 20.dp,
+    // point towards right
+    bottomEnd = 0.dp
+)
+
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             MorseCodeTheme {
-                Scaffold (
-                    topBar = { MorseCodeTopBar() },
-                    modifier = Modifier.fillMaxSize()
-                ) { innerPadding ->
-                    Surface( modifier = Modifier.padding(innerPadding)) {
-                        MorseCodeApp()
-                    }
-                }
+                MorseCodeApp()
+            }
+        }
+    }
+
+    @Composable
+    private fun MorseCodeApp() {
+        Scaffold(
+            topBar = { MorseCodeTopBar() },
+            modifier = Modifier.fillMaxSize()
+        ) { innerPadding ->
+            Surface(modifier = Modifier.padding(innerPadding)) {
+                MorseCodeBody()
             }
         }
     }
@@ -83,7 +103,7 @@ fun MorseCodeTopBar(modifier: Modifier = Modifier) {
 private const val BACK_CAMERA_IDX = 0
 
 @Composable
-fun MorseCodeApp(
+fun MorseCodeBody(
     chatViewModel: ChatViewModel = viewModel(),
     context: Context = LocalContext.current
 ) {
@@ -101,7 +121,6 @@ fun MorseCodeApp(
                 scrollState = scrollState
             )
         }
-        val context = LocalContext.current
         Row {
             MessageInput(
                 message = chatViewModel.currentMessage,
@@ -112,23 +131,6 @@ fun MorseCodeApp(
                 modifier = Modifier
                     .padding(top = 16.dp)
                     .fillMaxWidth()
-            )
-        }
-
-        val checkedStatus = remember { mutableStateOf(false) }
-        Row {
-            Switch(
-                checked = checkedStatus.value,
-                onCheckedChange = {
-                    checkedStatus.value = it
-                    val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
-                    val cameraId = cameraManager.cameraIdList[BACK_CAMERA_IDX]
-                    if (checkedStatus.value) {
-                        cameraManager.setTorchMode(cameraId, true)
-                    } else {
-                        cameraManager.setTorchMode(cameraId, false)
-                    }
-                }
             )
         }
     }
@@ -151,40 +153,35 @@ fun MessageBubbles(
             )
         }
     }
+
+    LaunchedEffect(messages.size) {
+        scrollState.scrollToItem(index = messages.size - 1)
+    }
 }
 
 @Composable
 fun MessageBubble(message: Message, modifier: Modifier = Modifier) {
     Column(
-        modifier = modifier.statusBarsPadding()
+        horizontalAlignment = when (message.status) {
+            in FROM_ME_STATUS -> Alignment.Start
+            else -> Alignment.End
+        },
+        modifier = modifier
+            .statusBarsPadding()
+            .fillMaxWidth()
     ) {
         Card (
             modifier = modifier,
-            colors = if (
-                    message.status == MessageState.SENDING ||
-                    message.status == MessageState.SENT
-                ) {
-                    CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.tertiaryContainer // Set background color
-                    )
-                } else {
-                    CardDefaults.cardColors()
-                },
-            shape = if (message.status == MessageState.SENDING ||
-                        message.status == MessageState.SENT
-                ) {
-                    RoundedCornerShape(
-                        topStart = 20.dp,
-                        topEnd = 20.dp,
-                        bottomEnd = 20.dp,
-                    )
-                } else {
-                    RoundedCornerShape(
-                        topStart = 20.dp,
-                        topEnd = 20.dp,
-                        bottomStart = 20.dp,
-                    )
+            colors = CardDefaults.cardColors(
+                containerColor = when (message.status) {
+                    in FROM_ME_STATUS -> MaterialTheme.colorScheme.secondary
+                    else -> MaterialTheme.colorScheme.primaryContainer
                 }
+            ),
+            shape = when (message.status) {
+                in FROM_ME_STATUS -> FROM_ME_SHAPE
+                else -> FROM_YOU_SHAPE
+            }
         ) {
             Text(
                 text = message.content,
@@ -233,13 +230,13 @@ fun MessageInput(
 @Preview(showBackground = true)
 @Composable
 fun MorseCodeAppPreview() {
-    MorseCodeApp()
+    MorseCodeBody()
 }
 
 @Preview(showBackground = true)
 @Composable
 fun MorseCodeAppDarkThemePreview() {
     MorseCodeTheme(darkTheme = true) {
-        MorseCodeApp()
+        MorseCodeBody()
     }
 }
