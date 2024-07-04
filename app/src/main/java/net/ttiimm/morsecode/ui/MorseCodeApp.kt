@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Card
@@ -35,12 +36,24 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import net.ttiimm.morsecode.FROM_ME_SHAPE
-import net.ttiimm.morsecode.FROM_ME_STATUS
-import net.ttiimm.morsecode.FROM_YOU_SHAPE
 import net.ttiimm.morsecode.R
 import net.ttiimm.morsecode.ui.theme.MorseCodeTheme
 
+val FROM_ME_STATUS = setOf(MessageState.SENDING, MessageState.SENT)
+val FROM_ME_SHAPE = RoundedCornerShape(
+    topStart = 20.dp,
+    topEnd = 20.dp,
+    // point towards left
+    bottomStart = 0.dp,
+    bottomEnd = 20.dp
+)
+val FROM_YOU_SHAPE = RoundedCornerShape(
+    topStart = 20.dp,
+    topEnd = 20.dp,
+    bottomStart = 20.dp,
+    // point towards right
+    bottomEnd = 0.dp
+)
 
 @Composable
 fun MorseCodeApp() {
