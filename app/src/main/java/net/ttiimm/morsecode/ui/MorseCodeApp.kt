@@ -28,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -35,6 +36,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.ttiimm.morsecode.R
+import net.ttiimm.morsecode.data.CameraChatRepository
 import net.ttiimm.morsecode.data.Message
 import net.ttiimm.morsecode.data.MessageState
 import net.ttiimm.morsecode.ui.theme.MorseCodeTheme
@@ -207,16 +209,21 @@ fun MessageInput(
     )
 }
 
+
 @Preview(showBackground = true)
 @Composable
 fun MorseCodeAppPreview() {
-    MorseCodeScreen()
+    val chatRepository = CameraChatRepository(LocalContext.current)
+    val chatViewModel = ChatViewModel(chatRepository)
+    MorseCodeScreen(chatViewModel)
 }
 
 @Preview(showBackground = true)
 @Composable
 fun MorseCodeAppDarkThemePreview() {
+    val chatRepository = CameraChatRepository(LocalContext.current)
+    val chatViewModel = ChatViewModel(chatRepository)
     MorseCodeTheme(darkTheme = true) {
-        MorseCodeScreen()
+        MorseCodeScreen(chatViewModel)
     }
 }
