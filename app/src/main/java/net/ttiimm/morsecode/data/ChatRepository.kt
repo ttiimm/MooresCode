@@ -3,6 +3,7 @@ package net.ttiimm.morsecode.data
 import android.content.Context
 import android.hardware.camera2.CameraManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 interface ChatRepository {
@@ -48,25 +49,25 @@ class CameraChatRepository(val context: Context) : ChatRepository {
         return translation
     }
 
-    private fun flashCode(translation: List<String>) {
+    private suspend fun flashCode(translation: List<String>) {
         val cameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
         val cameraId = cameraManager.cameraIdList[BACK_CAMERA_IDX]
         for (symbol in translation) {
             for (char in symbol) {
                 if (char == '-') {
                     cameraManager.setTorchMode(cameraId, ON)
-                    Thread.sleep(DASH_TIME_UNIT)
+                    delay(DASH_TIME_UNIT)
                     cameraManager.setTorchMode(cameraId, OFF)
                 } else if (char == '.'){
                     cameraManager.setTorchMode(cameraId, ON)
-                    Thread.sleep(DOT_TIME_UNIT)
+                    delay(DOT_TIME_UNIT)
                     cameraManager.setTorchMode(cameraId, OFF)
                 } else if (char == '/') {
-                    Thread.sleep(WORD_PAUSE_TIME_UNIT)
+                    delay(WORD_PAUSE_TIME_UNIT)
                 }
-                Thread.sleep(SYMBOL_PAUSE_TIME_UNIT)
+                delay(SYMBOL_PAUSE_TIME_UNIT)
             }
-            Thread.sleep(LETTER_PAUSE_TIME_UNIT)
+            delay(LETTER_PAUSE_TIME_UNIT)
         }
     }
 }

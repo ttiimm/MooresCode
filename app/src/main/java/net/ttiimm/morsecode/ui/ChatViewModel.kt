@@ -32,7 +32,7 @@ class ChatViewModel(private val chatRepository: ChatRepository) : ViewModel() {
         currentMessage = entered
     }
 
-    fun onTransmit() {
+    fun doTransmit() {
         val message = Message(currentMessage, Instant.now(), MessageState.SENDING)
         _uiState.update {
             it.messages.add(message)
