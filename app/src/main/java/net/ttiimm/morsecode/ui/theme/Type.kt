@@ -13,7 +13,7 @@ val AbrilFatface = FontFamily(
 )
 
 val AppTypography = Typography(
-    displayMedium = TextStyle(
+    headlineSmall = TextStyle(
         fontFamily = AbrilFatface,
         fontWeight = FontWeight.Normal,
         fontSize = 24.sp

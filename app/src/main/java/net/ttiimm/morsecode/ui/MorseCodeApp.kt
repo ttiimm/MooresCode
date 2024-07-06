@@ -1,11 +1,12 @@
 package net.ttiimm.morsecode.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -13,15 +14,19 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,7 +65,7 @@ val FROM_YOU_SHAPE = RoundedCornerShape(
 @Composable
 fun MorseCodeApp() {
     Scaffold(
-        topBar = { MorseCodeTopBar() },
+        topBar = { MorseCodeTopBar({ }) },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         Surface(modifier = Modifier.padding(innerPadding)) {
@@ -71,18 +76,39 @@ fun MorseCodeApp() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MorseCodeTopBar(modifier: Modifier = Modifier) {
-    CenterAlignedTopAppBar(
+fun MorseCodeTopBar(
+    onCameraClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    TopAppBar(
         title = {
-            Row {
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Text(
                     text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.displayMedium
+                    style = MaterialTheme.typography.headlineSmall
                 )
+
+                IconButton(onClick = onCameraClick) {
+                    Icon(
+                        imageVector = Icons.Filled.PhotoCamera,
+                        contentDescription = stringResource(R.string.open_camera),
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
         },
         modifier = modifier
     )
+}
+
+@Preview
+@Composable
+fun MorseCodeTopBarPreview() {
+    MorseCodeTopBar({})
 }
 
 @Composable
@@ -149,7 +175,6 @@ fun MessageBubble(message: Message, modifier: Modifier = Modifier) {
             else -> Alignment.End
         },
         modifier = modifier
-            .statusBarsPadding()
             .fillMaxWidth()
     ) {
         Card (
