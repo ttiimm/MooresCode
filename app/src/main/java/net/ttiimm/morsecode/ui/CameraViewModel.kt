@@ -92,7 +92,7 @@ class CameraViewModel : ViewModel() {
 
     private fun convertMessageToMorse(message: String): List<String> {
         // method to convert currentMessage to morse code (map in Alphabet.kt)
-        var translation: MutableList<String> = mutableListOf()
+        val translation: MutableList<String> = mutableListOf()
         for(c in message) {
             translation.add(ALPHANUM_TO_MORSE[c.uppercaseChar()]!!)
         }

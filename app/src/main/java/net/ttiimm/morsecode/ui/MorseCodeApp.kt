@@ -5,6 +5,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Arrangement
@@ -153,8 +155,12 @@ fun MorseCodeScreen(
 
     Column {
         if (cameraUiState.showCameraPreview) {
-            Row {
-                CameraPreview(cameraViewModel)
+            Row (modifier = Modifier.weight(1F)) {
+                CameraPreview(
+                    cameraViewModel = cameraViewModel,
+                    scrollState = scrollState,
+                    scrollIndex = chatUiState.messages.size - 1
+                )
             }
         }
 
@@ -208,12 +214,22 @@ fun MorseCodeScreenWithCameraPreview() {
 // This snippet is adapted from
 // https://medium.com/@deepugeorge2007travel/mastering-camerax-in-jetpack-compose-a-comprehensive-guide-for-android-developers-92ec3591a189
 @Composable
-fun CameraPreview(cameraViewModel: CameraViewModel) {
+fun CameraPreview(
+    cameraViewModel: CameraViewModel,
+    scrollState: LazyListState,
+    scrollIndex: Int
+) {
     val lensFacing = CameraSelector.LENS_FACING_BACK
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
 
-    val preview = CameraPreview.Builder().build()
+    val resolution = ResolutionSelector.Builder()
+        .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
+        .build()
+
+    val preview = CameraPreview.Builder()
+        .setResolutionSelector(resolution)
+        .build()
     val previewView = remember { PreviewView(context) }
 
     val imageCapture = ImageCapture.Builder()
@@ -226,6 +242,7 @@ fun CameraPreview(cameraViewModel: CameraViewModel) {
         cameraProvider.unbindAll()
         val camera = cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture)
         preview.setSurfaceProvider(previewView.surfaceProvider)
+        scrollState.scrollToItem(scrollIndex)
         cameraViewModel.onCameraReady(cameraProvider, camera)
     }
 
@@ -247,20 +264,23 @@ fun MessageBubbles(
     scrollState: LazyListState,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = modifier.fillMaxWidth(),
-        state = scrollState,
-    ) {
-        items(messages) {
-            MessageBubble(
-                message = it,
-                modifier = Modifier.padding(8.dp)
-            )
+    Surface {
+        LazyColumn(
+            modifier = modifier.fillMaxWidth(),
+            state = scrollState,
+        ) {
+            items(messages) {
+                MessageBubble(
+                    message = it,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
         }
     }
 
+
     LaunchedEffect(messages.size) {
-        scrollState.scrollToItem(index = messages.size)
+        scrollState.scrollToItem(index = messages.size - 1)
     }
 }
 
