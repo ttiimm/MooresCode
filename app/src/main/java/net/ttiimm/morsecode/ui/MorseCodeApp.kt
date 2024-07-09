@@ -1,10 +1,10 @@
 package net.ttiimm.morsecode.ui
 
-import android.Manifest
 import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.layout.Arrangement
@@ -38,9 +38,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -54,7 +52,6 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import net.ttiimm.morsecode.R
-import net.ttiimm.morsecode.data.CameraChatRepository
 import net.ttiimm.morsecode.data.Message
 import net.ttiimm.morsecode.data.MessageState
 import kotlin.coroutines.resume
@@ -80,28 +77,27 @@ val FROM_YOU_SHAPE = RoundedCornerShape(
 
 
 @Composable
-fun MorseCodeApp() {
-    var showCameraPreview by remember { mutableStateOf(false) }
-    var isShowing by remember { mutableStateOf(false) }
+fun MorseCodeApp(cameraViewModel: CameraViewModel = CameraViewModel()) {
+    val cameraUiState by cameraViewModel.uiState.collectAsState()
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) {
-        isGranted -> showCameraPreview = isGranted && isShowing
-    }
+    ) { isGranted -> cameraViewModel.onPermissionRequest(isGranted) }
 
     Scaffold(
         topBar = { MorseCodeTopBar(
-            onCameraClick = {
-                isShowing = !isShowing
-                cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-            }
+            onCameraClick = cameraViewModel.onNeedsCamera(
+                cameraUiState.needsCamera.not(),
+                cameraPermissionLauncher
+            )
         )
      },
         modifier = Modifier.fillMaxSize()
     ) { innerPadding ->
         Surface(modifier = Modifier.padding(innerPadding)) {
-            MorseCodeScreen(showCameraPreview = showCameraPreview)
+            MorseCodeScreen(
+                cameraViewModel = cameraViewModel
+            )
         }
     }
 }
@@ -145,23 +141,27 @@ fun MorseCodeTopBarPreview() {
 
 @Composable
 fun MorseCodeScreen(
-    chatViewModel: ChatViewModel = viewModel(factory = ChatViewModel.Factory),
-    showCameraPreview: Boolean = false
+    cameraViewModel: CameraViewModel,
+    chatViewModel: ChatViewModel = viewModel()
 ) {
+    val cameraUiState by cameraViewModel.uiState.collectAsState()
     val chatUiState by chatViewModel.uiState.collectAsState()
     val scrollState = rememberLazyListState()
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted -> cameraViewModel.onPermissionRequest(isGranted) }
 
     Column {
-        if (showCameraPreview) {
+        if (cameraUiState.showCameraPreview) {
             Row {
-                CameraReceiver(chatViewModel)
+                CameraPreview(cameraViewModel)
             }
         }
 
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1F)
+                .weight(1.5F)
         ) {
             MessageBubbles(
                 messages = chatUiState.messages,
@@ -173,7 +173,10 @@ fun MorseCodeScreen(
                 message = chatViewModel.currentMessage,
                 onMessageChange = { chatViewModel.updateCurrentMessage(it) },
                 doSend = {
-                    chatViewModel.doTransmit()
+                    // XXX: think about the coupling here
+                    cameraViewModel.onNeedsCamera(true, cameraPermissionLauncher)()
+                    val message = chatViewModel.onSend()
+                    cameraViewModel.onSend(message)
                 },
                 modifier = Modifier
                     .padding(top = 16.dp)
@@ -186,40 +189,46 @@ fun MorseCodeScreen(
 @Preview(showBackground = true)
 @Composable
 fun MorseCodeScreenPreview() {
-    val chatRepository = CameraChatRepository(LocalContext.current)
-    val chatViewModel = ChatViewModel(chatRepository)
-    MorseCodeScreen(chatViewModel)
+    val chatViewModel = ChatViewModel()
+    val cameraViewModel = CameraViewModel()
+    MorseCodeScreen(cameraViewModel, chatViewModel)
 }
 
 @Preview(showBackground = true)
 @Composable
 fun MorseCodeScreenWithCameraPreview() {
-    val chatRepository = CameraChatRepository(LocalContext.current)
-    val chatViewModel = ChatViewModel(chatRepository)
+    val chatViewModel = ChatViewModel()
+    val cameraViewModel = CameraViewModel()
     MorseCodeScreen(
+        cameraViewModel,
         chatViewModel = chatViewModel,
-        showCameraPreview = true
     )
 }
 
-// This snippet is from
+// This snippet is adapted from
 // https://medium.com/@deepugeorge2007travel/mastering-camerax-in-jetpack-compose-a-comprehensive-guide-for-android-developers-92ec3591a189
 @Composable
-fun CameraReceiver(chatViewModel: ChatViewModel) {
+fun CameraPreview(cameraViewModel: CameraViewModel) {
     val lensFacing = CameraSelector.LENS_FACING_BACK
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
+
     val preview = CameraPreview.Builder().build()
-    val previewView = remember {
-        PreviewView(context)
-    }
-    val cameraxSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
+    val previewView = remember { PreviewView(context) }
+
+    val imageCapture = ImageCapture.Builder()
+        .setFlashMode(ImageCapture.FLASH_MODE_ON)
+        .build()
+
+    val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
     LaunchedEffect(lensFacing) {
         val cameraProvider = context.getCameraProvider()
         cameraProvider.unbindAll()
-        cameraProvider.bindToLifecycle(lifecycleOwner, cameraxSelector, preview)
+        val camera = cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture)
         preview.setSurfaceProvider(previewView.surfaceProvider)
+        cameraViewModel.onCameraReady(cameraProvider, camera)
     }
+
     AndroidView(factory = { previewView })
 }
 
@@ -251,7 +260,7 @@ fun MessageBubbles(
     }
 
     LaunchedEffect(messages.size) {
-        scrollState.scrollToItem(index = messages.size - 1)
+        scrollState.scrollToItem(index = messages.size)
     }
 }
 
