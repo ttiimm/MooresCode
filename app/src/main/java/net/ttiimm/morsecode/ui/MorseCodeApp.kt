@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import net.ttiimm.morsecode.MorseCodeAnalyzer
 import net.ttiimm.morsecode.R
 import net.ttiimm.morsecode.data.Message
 import net.ttiimm.morsecode.data.MessageState
@@ -221,15 +222,19 @@ fun CameraPreview(
         .build()
     val previewView = remember { PreviewView(context) }
 
-    val imageCapture = ImageCapture.Builder()
-        .setFlashMode(ImageCapture.FLASH_MODE_ON)
+    val imageAnalysis = ImageAnalysis.Builder()
+        .setResolutionSelector(resolution)
+//        .setBackpressureStrategy(ImageAnalysis.STRATEGY_BLOCK_PRODUCER)
+        .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
         .build()
+
+    MorseCodeAnalyzer(imageAnalysis)
 
     val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
     LaunchedEffect(lensFacing) {
         val cameraProvider = context.getCameraProvider()
         cameraProvider.unbindAll()
-        val camera = cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageCapture)
+        val camera = cameraProvider.bindToLifecycle(lifecycleOwner, cameraSelector, preview, imageAnalysis)
         preview.setSurfaceProvider(previewView.surfaceProvider)
         scrollState.scrollToItem(scrollIndex)
         cameraViewModel.onCameraReady(cameraProvider, camera)
