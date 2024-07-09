@@ -200,17 +200,6 @@ fun MorseCodeScreenPreview() {
     MorseCodeScreen(cameraViewModel, chatViewModel)
 }
 
-@Preview(showBackground = true)
-@Composable
-fun MorseCodeScreenWithCameraPreview() {
-    val chatViewModel = ChatViewModel()
-    val cameraViewModel = CameraViewModel()
-    MorseCodeScreen(
-        cameraViewModel,
-        chatViewModel = chatViewModel,
-    )
-}
-
 // This snippet is adapted from
 // https://medium.com/@deepugeorge2007travel/mastering-camerax-in-jetpack-compose-a-comprehensive-guide-for-android-developers-92ec3591a189
 @Composable

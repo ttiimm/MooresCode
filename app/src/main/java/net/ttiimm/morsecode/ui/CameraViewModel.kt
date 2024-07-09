@@ -19,7 +19,7 @@ import net.ttiimm.morsecode.data.MessageState
 
 private const val ON = true
 private const val OFF = false
-private const val DOT_TIME_UNIT = 500L
+private const val DOT_TIME_UNIT = 250L
 // these are all derived off of the DOT_TIME_UNIT
 private const val DASH_TIME_UNIT = 3 * DOT_TIME_UNIT
 private const val SYMBOL_PAUSE_TIME_UNIT = DOT_TIME_UNIT
@@ -71,6 +71,8 @@ class CameraViewModel : ViewModel() {
 
     fun onCameraReady(cameraProvider: ProcessCameraProvider, camera: Camera) {
         viewModelScope.launch {
+            // XXX Hack to help make sure camera is initialized before trying to use flash
+            delay(LETTER_PAUSE_TIME_UNIT)
             while (cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA)) {
                 _uiState.collect { state ->
                     if (state.toSend.isNotEmpty()) {
