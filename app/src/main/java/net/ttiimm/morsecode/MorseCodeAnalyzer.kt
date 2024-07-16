@@ -5,17 +5,17 @@ import android.graphics.Canvas
 import android.graphics.ColorMatrix
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
-import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import net.ttiimm.morsecode.ui.CameraViewModel
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
 private const val TAG = "MorseCodeAnalyzer"
 
-class MorseCodeAnalyzer(imageAnalysis: ImageAnalysis){
+class MorseCodeAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraViewModel) {
 
     private val executor: Executor = Executors.newSingleThreadExecutor()
 
@@ -25,8 +25,12 @@ class MorseCodeAnalyzer(imageAnalysis: ImageAnalysis){
                 image.use {
                     val bitmap = image.toBitmap()
                     val grayscale = convert(bitmap)
-                    val average = average(grayscale)
-                    Log.i(TAG, "image width ${image.width} height ${image.height} avg $average")
+                    cameraViewModel.onPreviewChange(grayscale)
+                    // thresholding
+                    // open cv
+                    // contiguous? contour detection algo
+//                    val average = average(grayscale)
+//                    Log.i(TAG, "image width ${image.width} height ${image.height} avg $average")
                 }
             }
         }

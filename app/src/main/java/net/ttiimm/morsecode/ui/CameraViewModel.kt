@@ -1,6 +1,7 @@
 package net.ttiimm.morsecode.ui
 
 import android.Manifest
+import android.graphics.Bitmap
 import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
@@ -19,29 +20,28 @@ import net.ttiimm.morsecode.data.MessageState
 
 private const val ON = true
 private const val OFF = false
-private const val DOT_TIME_UNIT = 250L
+private const val DOT_TIME_UNIT = 300L
 // these are all derived off of the DOT_TIME_UNIT
 private const val DASH_TIME_UNIT = 3 * DOT_TIME_UNIT
 private const val SYMBOL_PAUSE_TIME_UNIT = DOT_TIME_UNIT
 private const val LETTER_PAUSE_TIME_UNIT = 3 * DOT_TIME_UNIT
 private const val WORD_PAUSE_TIME_UNIT = 7 * DOT_TIME_UNIT
 
+val ALPHANUM_TO_MORSE = mapOf(
+    Pair('A', ".-"),    Pair('B', "-..."),  Pair('C', "-.-."),  Pair('D', "-.."),   Pair('E', "."),
+    Pair('F', "..-."),  Pair('G', "--."),   Pair('H', "...."),  Pair('I', ".."),    Pair('J', ".---"),
+    Pair('K', "-.-"),   Pair('L', ".-.."),  Pair('M', "--"),    Pair('N', "-."),    Pair('O', "---"),
+    Pair('P', ".--."),  Pair('Q', "--.-"),  Pair('R', ".-."),   Pair('S', "..."),   Pair('T', "-"),
+    Pair('U', "..-"),   Pair('V', "...-"),  Pair('W', ".--"),   Pair('X', "-..-"),  Pair('Y', "-.--"),
+    Pair('Z', "--.."),  Pair('0', "-----"), Pair('1', ".----"), Pair('2', "..---"), Pair('3', "...--"),
+    Pair('4', "....-"), Pair('5', "....."), Pair('6', "-...."), Pair('7', "--..."), Pair('8', "---.."),
+    Pair('9', "----."), Pair(' ', "/")
+)
+
 class CameraViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(CameraUiState())
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
-
-
-    val ALPHANUM_TO_MORSE = mapOf(
-        Pair('A', ".-"),    Pair('B', "-..."),  Pair('C', "-.-."),  Pair('D', "-.."),   Pair('E', "."),
-        Pair('F', "..-."),  Pair('G', "--."),   Pair('H', "...."),  Pair('I', ".."),    Pair('J', ".---"),
-        Pair('K', "-.-"),   Pair('L', ".-.."),  Pair('M', "--"),    Pair('N', "-."),    Pair('O', "---"),
-        Pair('P', ".--."),  Pair('Q', "--.-"),  Pair('R', ".-."),   Pair('S', "..."),   Pair('T', "-"),
-        Pair('U', "..-"),   Pair('V', "...-"),  Pair('W', ".--"),   Pair('X', "-..-"),  Pair('Y', "-.--"),
-        Pair('Z', "--.."),  Pair('0', "-----"), Pair('1', ".----"), Pair('2', "..---"), Pair('3', "...--"),
-        Pair('4', "....-"), Pair('5', "....."), Pair('6', "-...."), Pair('7', "--..."), Pair('8', "---.."),
-        Pair('9', "----."), Pair(' ', "/")
-    )
 
     fun onNeedsCamera(
         shouldShow: Boolean,
@@ -118,6 +118,18 @@ class CameraViewModel : ViewModel() {
                 delay(SYMBOL_PAUSE_TIME_UNIT)
             }
             delay(LETTER_PAUSE_TIME_UNIT)
+        }
+    }
+
+    fun onUsePreviewChange(isUsingAnalysis: Boolean) {
+        _uiState.update {
+            it.copy(isShowingAnalysis = isUsingAnalysis)
+        }
+    }
+
+    fun onPreviewChange(image: Bitmap) {
+        _uiState.update {
+            it.copy(previewImage = image)
         }
     }
 }

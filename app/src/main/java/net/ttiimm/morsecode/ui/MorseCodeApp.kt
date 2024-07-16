@@ -9,6 +9,7 @@ import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -33,6 +34,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
@@ -43,6 +45,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -82,17 +85,18 @@ val FROM_YOU_SHAPE = RoundedCornerShape(
 @Composable
 fun MorseCodeApp(cameraViewModel: CameraViewModel = CameraViewModel()) {
     val cameraUiState by cameraViewModel.uiState.collectAsState()
-
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted -> cameraViewModel.onPermissionRequest(isGranted) }
 
     Scaffold(
         topBar = { MorseCodeTopBar(
+            isShowingAnalysis = cameraUiState.isShowingAnalysis,
             onCameraClick = cameraViewModel.onNeedsCamera(
                 cameraUiState.needsCamera.not(),
                 cameraPermissionLauncher
-            )
+            ),
+            onSwitchChange = { cameraViewModel.onUsePreviewChange(it) }
         )
      },
         modifier = Modifier.fillMaxSize()
@@ -109,7 +113,9 @@ fun MorseCodeApp(cameraViewModel: CameraViewModel = CameraViewModel()) {
 @Composable
 fun MorseCodeTopBar(
     onCameraClick: () -> Unit,
-    modifier: Modifier = Modifier
+    onSwitchChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    isShowingAnalysis: Boolean = false,
 ) {
     TopAppBar(
         title = {
@@ -121,6 +127,12 @@ fun MorseCodeTopBar(
                 Text(
                     text = stringResource(R.string.app_name),
                     style = MaterialTheme.typography.headlineSmall
+                )
+
+                // XXX: This might be temporary
+                Switch(
+                    checked = isShowingAnalysis,
+                    onCheckedChange = onSwitchChange
                 )
 
                 IconButton(onClick = onCameraClick) {
@@ -139,7 +151,7 @@ fun MorseCodeTopBar(
 @Preview
 @Composable
 fun MorseCodeTopBarPreview() {
-    MorseCodeTopBar({})
+    MorseCodeTopBar(onCameraClick = {}, onSwitchChange = {})
 }
 
 @Composable
@@ -156,12 +168,22 @@ fun MorseCodeScreen(
 
     Column {
         if (cameraUiState.showCameraPreview) {
-            Row (modifier = Modifier.weight(1F)) {
+            Row (modifier = Modifier.weight(.5F)) {
                 CameraPreview(
                     cameraViewModel = cameraViewModel,
                     scrollState = scrollState,
                     scrollIndex = chatUiState.messages.size - 1
                 )
+            }
+            if (cameraUiState.isShowingAnalysis && cameraUiState.previewImage != null) {
+                Row (modifier = Modifier.weight(.5F)
+                        .fillMaxWidth()) {
+                    val image = cameraUiState.previewImage!!;
+                    Image(
+                        bitmap = image.asImageBitmap(),
+                        contentDescription = stringResource(R.string.preview_description)
+                    )
+                }
             }
         }
 
@@ -209,6 +231,7 @@ fun CameraPreview(
     scrollState: LazyListState,
     scrollIndex: Int
 ) {
+    val cameraUiState by cameraViewModel.uiState.collectAsState()
     val lensFacing = CameraSelector.LENS_FACING_BACK
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
@@ -228,7 +251,7 @@ fun CameraPreview(
         .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
         .build()
 
-    MorseCodeAnalyzer(imageAnalysis)
+    MorseCodeAnalyzer(imageAnalysis, cameraViewModel)
 
     val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
     LaunchedEffect(lensFacing) {
@@ -239,8 +262,8 @@ fun CameraPreview(
         scrollState.scrollToItem(scrollIndex)
         cameraViewModel.onCameraReady(cameraProvider, camera)
     }
-
     AndroidView(factory = { previewView })
+
 }
 
 private suspend fun Context.getCameraProvider(): ProcessCameraProvider =
