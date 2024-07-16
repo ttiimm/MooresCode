@@ -20,7 +20,7 @@ import net.ttiimm.morsecode.data.MessageState
 
 private const val ON = true
 private const val OFF = false
-private const val DOT_TIME_UNIT = 300L
+private const val DOT_TIME_UNIT = 500L
 // these are all derived off of the DOT_TIME_UNIT
 private const val DASH_TIME_UNIT = 3 * DOT_TIME_UNIT
 private const val SYMBOL_PAUSE_TIME_UNIT = DOT_TIME_UNIT
@@ -102,20 +102,25 @@ class CameraViewModel : ViewModel() {
     }
 
     private suspend fun flashCode(translation: List<String>, camera: Camera) {
-        for (symbol in translation) {
-            for (char in symbol) {
-                if (char == '-') {
-                    camera.cameraControl.enableTorch(ON)
-                    delay(DASH_TIME_UNIT)
-                    camera.cameraControl.enableTorch(OFF)
-                } else if (char == '.'){
-                    camera.cameraControl.enableTorch(ON)
-                    delay(DOT_TIME_UNIT)
-                    camera.cameraControl.enableTorch(OFF)
-                } else if (char == '/') {
-                    delay(WORD_PAUSE_TIME_UNIT)
+        for (letter in translation) {
+            for (symbol in letter) {
+                when (symbol) {
+                    '-' -> {
+                        camera.cameraControl.enableTorch(ON)
+                        delay(DASH_TIME_UNIT)
+                        camera.cameraControl.enableTorch(OFF)
+                        delay(SYMBOL_PAUSE_TIME_UNIT)
+                    }
+                    '.' -> {
+                        camera.cameraControl.enableTorch(ON)
+                        delay(DOT_TIME_UNIT)
+                        camera.cameraControl.enableTorch(OFF)
+                        delay(SYMBOL_PAUSE_TIME_UNIT)
+                    }
+                    '/' -> {
+                        delay(WORD_PAUSE_TIME_UNIT)
+                    }
                 }
-                delay(SYMBOL_PAUSE_TIME_UNIT)
             }
             delay(LETTER_PAUSE_TIME_UNIT)
         }
@@ -130,6 +135,12 @@ class CameraViewModel : ViewModel() {
     fun onPreviewChange(image: Bitmap) {
         _uiState.update {
             it.copy(previewImage = image)
+        }
+    }
+
+    fun onReceiving(symbol: String) {
+        _uiState.update {
+            it.copy(receiving = it.receiving + symbol)
         }
     }
 }

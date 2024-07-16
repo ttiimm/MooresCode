@@ -60,6 +60,7 @@ import net.ttiimm.morsecode.MorseCodeAnalyzer
 import net.ttiimm.morsecode.R
 import net.ttiimm.morsecode.data.Message
 import net.ttiimm.morsecode.data.MessageState
+import java.time.Instant
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 import androidx.camera.core.Preview as CameraPreview
@@ -168,7 +169,7 @@ fun MorseCodeScreen(
 
     Column {
         if (cameraUiState.showCameraPreview) {
-            Row (modifier = Modifier.weight(.5F)) {
+            Row (modifier = Modifier.weight(0.75F)) {
                 CameraPreview(
                     cameraViewModel = cameraViewModel,
                     scrollState = scrollState,
@@ -176,12 +177,15 @@ fun MorseCodeScreen(
                 )
             }
             if (cameraUiState.isShowingAnalysis && cameraUiState.previewImage != null) {
-                Row (modifier = Modifier.weight(.5F)
-                        .fillMaxWidth()) {
+                Row (modifier = Modifier
+                        .weight(1F)
+                        .fillMaxWidth()
+                ) {
                     val image = cameraUiState.previewImage!!;
                     Image(
                         bitmap = image.asImageBitmap(),
-                        contentDescription = stringResource(R.string.preview_description)
+                        contentDescription = stringResource(R.string.preview_description),
+                        modifier = Modifier.fillMaxWidth(),
                     )
                 }
             }
@@ -194,6 +198,7 @@ fun MorseCodeScreen(
         ) {
             MessageBubbles(
                 messages = chatUiState.messages,
+                receiving = cameraUiState.receiving,
                 scrollState = scrollState
             )
         }
@@ -278,6 +283,7 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider =
 @Composable
 fun MessageBubbles(
     messages: List<Message>,
+    receiving: String,
     scrollState: LazyListState,
     modifier: Modifier = Modifier
 ) {
@@ -286,7 +292,7 @@ fun MessageBubbles(
             modifier = modifier.fillMaxWidth(),
             state = scrollState,
         ) {
-            items(messages) {
+            items(messages + Message(receiving, Instant.now(), MessageState.RECEIVING)) {
                 MessageBubble(
                     message = it,
                     modifier = Modifier.padding(8.dp)

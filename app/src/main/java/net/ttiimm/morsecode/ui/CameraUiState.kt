@@ -8,7 +8,8 @@ data class CameraUiState(
     val previewImage: Bitmap? = null,
     val showCameraPreview: Boolean = false,
     val needsCamera: Boolean = false,
-    val toSend: List<Message> = mutableListOf()
+    val toSend: List<Message> = mutableListOf(),
+    var receiving: String = "",
 ) {
 
 }
