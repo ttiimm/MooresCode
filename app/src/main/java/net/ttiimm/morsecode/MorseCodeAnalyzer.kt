@@ -6,64 +6,38 @@ import android.graphics.Color
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
-import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.ttiimm.morsecode.ui.CameraViewModel
+import net.ttiimm.morsecode.ui.Capture
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
-
+private const val DO_PBP = false
 private const val TAG = "MorseCodeAnalyzer"
 
 private const val THRESHOLD = 250F
 
-private data class SignalState (
-    val isLight: Boolean,
-    val ts: Long,
-    var duration: Long,
-)
-
 class MorseCodeAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraViewModel) {
 
     private val executor: Executor = Executors.newSingleThreadExecutor()
-    private var state: SignalState = SignalState(false, System.currentTimeMillis(), 0L)
 
     init {
         imageAnalysis.setAnalyzer(executor) { image ->
             CoroutineScope(Dispatchers.Default).launch {
                 image.use {
                     val bitmap = image.toBitmap()
-                    val grayscale = convert(bitmap)
-                    cameraViewModel.onPreviewChange(grayscale)
-                    val sum = sumBitmapValues(grayscale)
-                    val now = System.currentTimeMillis()
-                    if (!state.isLight && sum > 200_000) {
-                        state.duration = now - state.ts
+                    val binaryImage = if (DO_PBP) convertNaive(bitmap) else convert(bitmap)
+                    val sum = if (DO_PBP) sumBitmapValuesNaive(bitmap) else sumBitmapValues(binaryImage)
+//                    if (sum > 0) {
+//                        Log.i(TAG, "sum = ${sum}")
+//                    }
 
-                        if (state.duration > 3900 && state.duration < 4100) {
-                            cameraViewModel.onReceiving("  ")
-                        } else if (state.duration > 1900 && state.duration < 2100) {
-                            cameraViewModel.onReceiving(" ")
-                        }
-
-                        Log.i(TAG, state.toString())
-                        state = SignalState(true, now, 0)
-                    } else if (state.isLight && sum < 1000) {
-                        state.duration = now - state.ts
-
-                        if (state.duration > 400 && state.duration < 600) {
-                            cameraViewModel.onReceiving(".")
-                        } else if (state.duration > 1400 && state.duration < 1600) {
-                            cameraViewModel.onReceiving("-")
-                        }
-
-                        Log.i(TAG, state.toString())
-                        state = SignalState(false, now, 0)
-                    }
-//                    val average = average(grayscale)
+                    cameraViewModel.onPreviewChange(
+                        Capture(binaryImage, sum)
+                    )
 
                 }
             }
@@ -99,7 +73,7 @@ class MorseCodeAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraVie
         return converted
     }
 
-    private fun convertBinary(image: Bitmap): Bitmap {
+    private fun convertNaive(image: Bitmap): Bitmap {
         val binaryImage = Bitmap.createBitmap(image.width, image.height, Bitmap.Config.ARGB_8888)
         for (x in 0 until image.width) {
             for (y in 0 until image.height){
@@ -122,25 +96,23 @@ class MorseCodeAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraVie
     }
 
     private fun sumBitmapValues(bitmap: Bitmap): Int {
+        val pixels = IntArray(bitmap.width * bitmap.height)
+        bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+        return pixels.sumOf {
+            val grayness = (it and 0xFF) / 255;
+            grayness
+        }
+    }
+
+    private fun sumBitmapValuesNaive(bitmap: Bitmap): Int {
         var sum = 0
         for (x in 0 until bitmap.width) {
             for (y in 0 until bitmap.height) {
-                val pixelColor = bitmap.getPixel(x, y)
-                sum += brightness(pixelColor)
+                val rgb = bitmap.getPixel(x, y)
+                val grayness = rgb and 0xFF
+                sum += grayness
             }
         }
         return sum
-    }
-
-    private fun average(image: Bitmap): Double {
-        var total = 0L
-        for (x in 0 until image.width) {
-            for (y in 0 until image.height) {
-                val rgb = image.getPixel(x, y)
-                val grayness = rgb and 0xFF
-                total += grayness
-            }
-        }
-        return total.toDouble() / (image.width * image.height)
     }
 }
