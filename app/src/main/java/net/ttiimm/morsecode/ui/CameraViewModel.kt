@@ -46,7 +46,7 @@ private const val TAG = "MorseCodeAnalyzer"
 
 data class Capture(
     val preview: Bitmap,
-    val sum: Int,
+    val value: Int,
 )
 
 data class FpsTracker(
@@ -54,16 +54,7 @@ data class FpsTracker(
     var frames: Int = 0
 )
 
-data class AverageLightTracker(
-    var sumOfSums: Int = 0,
-    var sumOfFrames: Int = 0,
-)
-
-private const val DIFF_THRESHOLD = 100
-private const val DIFF_MIN = 10F
-
 private const val ONE_SEC = 1000
-private const val MAX_AVG_FRAMES = 270
 
 class CameraViewModel : ViewModel() {
 
@@ -73,9 +64,6 @@ class CameraViewModel : ViewModel() {
     private var state: Signal = Signal(false, System.currentTimeMillis(), 0L, 0F)
 
     private val fps: FpsTracker = FpsTracker(System.currentTimeMillis())
-    private val avg: AverageLightTracker = AverageLightTracker()
-
-    private var averageSum: Float = 0F
 
 
     fun onNeedsCamera(
@@ -173,54 +161,12 @@ class CameraViewModel : ViewModel() {
         }
 
         val now = System.currentTimeMillis()
-        val lightDiff = capture.sum - averageSum
-
-        if (lightDiff in 0.001F..Float.MAX_VALUE) {
-            Log.d(TAG, "lightDiff = ${lightDiff} sum = ${capture.sum} averageSum = ${averageSum}")
-        }
-
-        if (!state.isLight && lightDiff > DIFF_THRESHOLD) {
-            state.duration = now - state.ts
-
-            if (state.duration in 3400.. 3600) {
-                onReceiving("\t")
-                Log.i(TAG, "recording end-of-word")
-            } else if (state.duration in 1400..1600) {
-                onReceiving("  ")
-                Log.i(TAG, "recording end-of-symbol")
-            }
-
-            Log.i(TAG, state.toString())
-            state = Signal(true, now, 0, lightDiff)
-        } else if (state.isLight && lightDiff < 0) {
-            state.duration = now - state.ts
-
-            if (state.duration in 400..600) {
-                onReceiving(".")
-                Log.i(TAG, "recording .")
-            } else if (state.duration in 1400..1600) {
-                onReceiving("-")
-                Log.i(TAG, "recording -")
-            }
-
-            Log.i(TAG, state.toString())
-            state = Signal(false, now, 0, lightDiff)
-        }
-
         if (now - fps.ts > ONE_SEC) {
             Log.d(TAG, "fps=${fps.frames}")
-            averageSum = avg.sumOfSums.toFloat() / avg.sumOfFrames
-            if (avg.sumOfFrames > MAX_AVG_FRAMES) {
-                avg.sumOfSums = capture.sum
-                avg.sumOfFrames = 1
-            }
-
             fps.ts = now
             fps.frames = 1
         } else {
             fps.frames++
-            avg.sumOfFrames++
-            avg.sumOfSums += capture.sum
         }
     }
 

@@ -18,7 +18,7 @@ import java.util.concurrent.Executors
 private const val DO_PBP = false
 private const val TAG = "MorseCodeAnalyzer"
 
-private const val THRESHOLD = 250F
+private const val THRESHOLD = 254F
 
 class MorseCodeAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraViewModel) {
 
@@ -30,6 +30,7 @@ class MorseCodeAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraVie
                 image.use {
                     val bitmap = image.toBitmap()
                     val binaryImage = if (DO_PBP) convertNaive(bitmap) else convert(bitmap)
+                    // filter based on location or size?
                     val sum = if (DO_PBP) sumBitmapValuesNaive(bitmap) else sumBitmapValues(binaryImage)
 //                    if (sum > 0) {
 //                        Log.i(TAG, "sum = ${sum}")
