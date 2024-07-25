@@ -56,7 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
-import net.ttiimm.morsecode.MorseCodeAnalyzer
+import net.ttiimm.morsecode.LuminanceAnalyzer
 import net.ttiimm.morsecode.R
 import net.ttiimm.morsecode.data.Message
 import net.ttiimm.morsecode.data.MessageState
@@ -256,7 +256,7 @@ fun CameraPreview(
         .setOutputImageFormat(ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888)
         .build()
 
-    MorseCodeAnalyzer(imageAnalysis, cameraViewModel)
+    LuminanceAnalyzer(imageAnalysis, cameraViewModel)
 
     val cameraSelector = CameraSelector.Builder().requireLensFacing(lensFacing).build()
     LaunchedEffect(lensFacing) {

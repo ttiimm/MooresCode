@@ -18,8 +18,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import net.ttiimm.morsecode.data.Message
 import net.ttiimm.morsecode.data.MessageState
-import net.ttiimm.morsecode.data.Signal
-import net.ttiimm.morsecode.data.SignalStateMachine
+import net.ttiimm.morsecode.data.MorseCodeStateMachine
 
 private const val IS_ON = true
 private const val IS_OFF = false
@@ -44,10 +43,18 @@ val ALPHANUM_TO_MORSE = mapOf(
 private const val TAG = "MorseCodeAnalyzer"
 
 
-data class Capture(
+data class Frame(
     val preview: Bitmap,
-    val value: Int,
+    val signal: Signal,
 )
+
+data class Signal(
+    val luminance: Int,
+    val ts: Long = System.currentTimeMillis(),
+) {
+    val isOn: Boolean = luminance > 0
+    val isOff: Boolean = !isOn
+}
 
 data class FpsTracker(
     var ts: Long,
@@ -60,8 +67,7 @@ class CameraViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(CameraUiState())
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
-    private val stateMachine: SignalStateMachine = SignalStateMachine()
-    private var state: Signal = Signal(false, System.currentTimeMillis(), 0L, 0F)
+    private val morseCodeStateMachine: MorseCodeStateMachine = MorseCodeStateMachine()
 
     private val fps: FpsTracker = FpsTracker(System.currentTimeMillis())
 
@@ -155,9 +161,9 @@ class CameraViewModel : ViewModel() {
         }
     }
 
-    fun onPreviewChange(capture: Capture) {
+    fun onPreviewChange(frame: Frame) {
         _uiState.update {
-            it.copy(previewImage = capture.preview)
+            it.copy(previewImage = frame.preview)
         }
 
         val now = System.currentTimeMillis()

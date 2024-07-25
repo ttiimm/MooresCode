@@ -11,7 +11,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.ttiimm.morsecode.ui.CameraViewModel
-import net.ttiimm.morsecode.ui.Capture
+import net.ttiimm.morsecode.ui.Frame
+import net.ttiimm.morsecode.ui.Signal
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
@@ -20,7 +21,7 @@ private const val TAG = "MorseCodeAnalyzer"
 
 private const val THRESHOLD = 254F
 
-class MorseCodeAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraViewModel) {
+class LuminanceAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraViewModel) {
 
     private val executor: Executor = Executors.newSingleThreadExecutor()
 
@@ -31,15 +32,9 @@ class MorseCodeAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraVie
                     val bitmap = image.toBitmap()
                     val binaryImage = if (DO_PBP) convertNaive(bitmap) else convert(bitmap)
                     // filter based on location or size?
-                    val sum = if (DO_PBP) sumBitmapValuesNaive(bitmap) else sumBitmapValues(binaryImage)
-//                    if (sum > 0) {
-//                        Log.i(TAG, "sum = ${sum}")
-//                    }
-
-                    cameraViewModel.onPreviewChange(
-                        Capture(binaryImage, sum)
-                    )
-
+                    val luminance = if (DO_PBP) sumBitmapValuesNaive(bitmap) else sumBitmapValues(binaryImage)
+                    val frame = Frame(binaryImage, Signal(luminance))
+                    cameraViewModel.onPreviewChange(frame)
                 }
             }
         }
@@ -100,7 +95,7 @@ class MorseCodeAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraVie
         val pixels = IntArray(bitmap.width * bitmap.height)
         bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
         return pixels.sumOf {
-            val grayness = (it and 0xFF) / 255;
+            val grayness = Math.round((it and 0xFF) / 255F);
             grayness
         }
     }
