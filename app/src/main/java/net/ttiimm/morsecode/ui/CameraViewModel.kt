@@ -19,15 +19,20 @@ import kotlinx.coroutines.launch
 import net.ttiimm.morsecode.data.Message
 import net.ttiimm.morsecode.data.MessageState
 import net.ttiimm.morsecode.data.MorseCodeStateMachine
+import net.ttiimm.morsecode.data.State
 
 private const val IS_ON = true
 private const val IS_OFF = false
-private const val DOT_TIME_UNIT = 500L
+
+const val DOT_TIME_UNIT = 500L
 // these are all derived off of the DOT_TIME_UNIT
-private const val DASH_TIME_UNIT = 3 * DOT_TIME_UNIT
-private const val SYMBOL_PAUSE_TIME_UNIT = DOT_TIME_UNIT
-private const val LETTER_PAUSE_TIME_UNIT = 3 * DOT_TIME_UNIT
-private const val WORD_PAUSE_TIME_UNIT = 7 * DOT_TIME_UNIT
+const val MAYBE_RECEIVING = DOT_TIME_UNIT - 200L
+const val DASH_TIME_UNIT = 3 * DOT_TIME_UNIT
+const val SYMBOL_PAUSE_TIME_UNIT = DOT_TIME_UNIT
+const val LETTER_PAUSE_TIME_UNIT = 3 * DOT_TIME_UNIT
+const val WORD_PAUSE_TIME_UNIT = 7 * DOT_TIME_UNIT
+const val MESSAGE_PAUSE_TIME_UNIT = 8 * DOT_TIME_UNIT
+const val RECEIVING_STOPPED = 10 * DOT_TIME_UNIT
 
 val ALPHANUM_TO_MORSE = mapOf(
     Pair('A', ".-"),    Pair('B', "-..."),  Pair('C', "-.-."),  Pair('D', "-.."),   Pair('E', "."),
@@ -63,11 +68,24 @@ data class FpsTracker(
 
 private const val ONE_SEC = 1000
 
-class CameraViewModel : ViewModel() {
+class CameraViewModel(private val onReceived: (String) -> Unit) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CameraUiState())
     val uiState: StateFlow<CameraUiState> = _uiState.asStateFlow()
-    private val morseCodeStateMachine: MorseCodeStateMachine = MorseCodeStateMachine()
+
+    private val morseCodeStateMachine: MorseCodeStateMachine = MorseCodeStateMachine(
+        entrances = mapOf(
+            State("receiving") to { onReceiving("") },
+            State("dot") to { onReceiving(".") },
+            State("dash") to { onReceiving("-") },
+            State("pause-symbol") to { onReceiving(" ") },
+            State("pause-letter") to { onReceiving("  ") },
+            State("pause-word") to { onReceiving("    ") },
+        ),
+        exits = mapOf(
+            State("maybe") to { updateReceived() },
+        ),
+    )
 
     private val fps: FpsTracker = FpsTracker(System.currentTimeMillis())
 
@@ -153,6 +171,7 @@ class CameraViewModel : ViewModel() {
             }
             delay(LETTER_PAUSE_TIME_UNIT)
         }
+        delay(MESSAGE_PAUSE_TIME_UNIT)
     }
 
     fun onUsePreviewChange(isUsingAnalysis: Boolean) {
@@ -166,6 +185,9 @@ class CameraViewModel : ViewModel() {
             it.copy(previewImage = frame.preview)
         }
 
+        // XXX: probably should buffer up frames and weed out noise or something?
+        morseCodeStateMachine.onSignal(frame.signal)
+
         val now = System.currentTimeMillis()
         if (now - fps.ts > ONE_SEC) {
             Log.d(TAG, "fps=${fps.frames}")
@@ -176,9 +198,18 @@ class CameraViewModel : ViewModel() {
         }
     }
 
-    fun onReceiving(symbol: String) {
+    private fun onReceiving(symbol: String) {
+        Log.d(TAG, "onReceiving `${symbol}`")
         _uiState.update {
             it.copy(receiving = it.receiving + symbol)
+        }
+    }
+
+    private fun updateReceived() {
+        Log.d(TAG, "updateReceived `${_uiState.value.receiving}`")
+        onReceived(_uiState.value.receiving)
+        _uiState.update {
+            it.copy(receiving = "")
         }
     }
 }

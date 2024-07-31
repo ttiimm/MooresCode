@@ -84,7 +84,8 @@ val FROM_YOU_SHAPE = RoundedCornerShape(
 
 
 @Composable
-fun MorseCodeApp(cameraViewModel: CameraViewModel = CameraViewModel()) {
+fun MorseCodeApp(cameraViewModel: CameraViewModel,
+                 chatViewModel: ChatViewModel) {
     val cameraUiState by cameraViewModel.uiState.collectAsState()
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
@@ -104,7 +105,8 @@ fun MorseCodeApp(cameraViewModel: CameraViewModel = CameraViewModel()) {
     ) { innerPadding ->
         Surface(modifier = Modifier.padding(innerPadding)) {
             MorseCodeScreen(
-                cameraViewModel = cameraViewModel
+                cameraViewModel = cameraViewModel,
+                chatViewModel = chatViewModel,
             )
         }
     }
@@ -224,7 +226,7 @@ fun MorseCodeScreen(
 @Composable
 fun MorseCodeScreenPreview() {
     val chatViewModel = ChatViewModel()
-    val cameraViewModel = CameraViewModel()
+    val cameraViewModel = CameraViewModel { chatViewModel.onReceived(it) }
     MorseCodeScreen(cameraViewModel, chatViewModel)
 }
 
@@ -287,12 +289,18 @@ fun MessageBubbles(
     scrollState: LazyListState,
     modifier: Modifier = Modifier
 ) {
+    val messagesAndReceiving = if (receiving.isNotBlank()) {
+        messages + Message(receiving, Instant.now(), MessageState.RECEIVING)
+    } else {
+        messages
+    }
+
     Surface {
         LazyColumn(
             modifier = modifier.fillMaxWidth(),
             state = scrollState,
         ) {
-            items(messages + Message(receiving, Instant.now(), MessageState.RECEIVING)) {
+            items(messagesAndReceiving) {
                 MessageBubble(
                     message = it,
                     modifier = Modifier.padding(8.dp)

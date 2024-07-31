@@ -10,6 +10,7 @@ data class CameraUiState(
     val needsCamera: Boolean = false,
     val toSend: List<Message> = mutableListOf(),
     var receiving: String = "",
+    val received: List<Message> = mutableListOf(),
 ) {
 
 }

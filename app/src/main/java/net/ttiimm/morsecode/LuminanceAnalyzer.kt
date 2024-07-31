@@ -17,9 +17,7 @@ import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
 private const val DO_PBP = false
-private const val TAG = "MorseCodeAnalyzer"
-
-private const val THRESHOLD = 254F
+private const val THRESHOLD = 250F
 
 class LuminanceAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraViewModel) {
 
@@ -31,7 +29,7 @@ class LuminanceAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraVie
                 image.use {
                     val bitmap = image.toBitmap()
                     val binaryImage = if (DO_PBP) convertNaive(bitmap) else convert(bitmap)
-                    // filter based on location or size?
+                    // XXX: filter based on location or size?
                     val luminance = if (DO_PBP) sumBitmapValuesNaive(bitmap) else sumBitmapValues(binaryImage)
                     val frame = Frame(binaryImage, Signal(luminance))
                     cameraViewModel.onPreviewChange(frame)

@@ -14,7 +14,7 @@ class MorseCodeStateMachineTest {
 
     @Test
     fun idleToMaybeReceiving() {
-        val stateMachine = MorseCodeStateMachine(State("idle"))
+        val stateMachine = MorseCodeStateMachine(State("idle"), isProd = false)
         stateMachine.onSignal(Signal(1))
         assertEquals(State("maybe"), stateMachine.current)
     }
@@ -22,7 +22,7 @@ class MorseCodeStateMachineTest {
     @Test
     fun maybeReceivingToIdleNotLongEnough() {
         val now = System.currentTimeMillis()
-        val stateMachine = MorseCodeStateMachine(State("maybe"))
+        val stateMachine = MorseCodeStateMachine(State("maybe"), isProd = false)
         stateMachine.onSignal(Signal(1, ts = now))
         assertEquals(State("maybe"), stateMachine.current)
         stateMachine.onSignal(Signal(0, ts = now + 1_000))
@@ -34,7 +34,7 @@ class MorseCodeStateMachineTest {
     @Test
     fun maybeReceivingToIdle() {
         val now = System.currentTimeMillis()
-        val stateMachine = MorseCodeStateMachine(State("maybe"))
+        val stateMachine = MorseCodeStateMachine(State("maybe"), isProd = false)
         stateMachine.onSignal(Signal(1, ts = now))
         assertEquals(State("maybe"), stateMachine.current)
 
@@ -49,7 +49,8 @@ class MorseCodeStateMachineTest {
         var result = false
         val stateMachine = MorseCodeStateMachine(
             State("maybe"),
-            entrances = mapOf(State("receiving") to { result = true })
+            entrances = mapOf(State("receiving") to { result = true }),
+            isProd = false
         )
         stateMachine.onSignal(Signal(1, ts = now))
         assertEquals(State("maybe"), stateMachine.current)
@@ -64,7 +65,8 @@ class MorseCodeStateMachineTest {
         var result = false
         val stateMachine = MorseCodeStateMachine(
             State("receiving"),
-            exits = mapOf(State("receiving") to { result = true })
+            exits = mapOf(State("receiving") to { result = true }),
+            isProd = false
         )
         stateMachine.onSignal(Signal(0, ts = now))
         assertEquals(State("receiving"), stateMachine.current)
@@ -76,7 +78,7 @@ class MorseCodeStateMachineTest {
     @Test
     fun receivingToSymbol() {
         val now = System.currentTimeMillis()
-        val stateMachine = MorseCodeStateMachine(State("receiving"))
+        val stateMachine = MorseCodeStateMachine(State("receiving"), isProd = false)
         stateMachine.onSignal(Signal(1, ts = now))
         assertEquals(State("receiving"), stateMachine.current)
         stateMachine.onSignal(Signal(1, ts = now + 500))
@@ -86,7 +88,7 @@ class MorseCodeStateMachineTest {
     @Test
     fun receivingToDot() {
         val now = System.currentTimeMillis()
-        val stateMachine = MorseCodeStateMachine(State("receiving"))
+        val stateMachine = MorseCodeStateMachine(State("receiving"), isProd = false)
         stateMachine.onSignal(Signal(1, ts = now))
         assertEquals(State("receiving"), stateMachine.current)
         stateMachine.onSignal(Signal(1, ts = now + 500))
@@ -98,7 +100,7 @@ class MorseCodeStateMachineTest {
     @Test
     fun receivingToDash() {
         val now = System.currentTimeMillis()
-        val stateMachine = MorseCodeStateMachine(State("receiving"))
+        val stateMachine = MorseCodeStateMachine(State("receiving"), isProd = false)
         stateMachine.onSignal(Signal(1, ts = now))
         assertEquals(State("receiving"), stateMachine.current)
         stateMachine.onSignal(Signal(1, ts = now + 500))
@@ -110,7 +112,7 @@ class MorseCodeStateMachineTest {
     @Test
     fun dotToPause() {
         val now = System.currentTimeMillis()
-        val stateMachine = MorseCodeStateMachine(State("dot"))
+        val stateMachine = MorseCodeStateMachine(State("dot"), isProd = false)
         stateMachine.onSignal(Signal(0, now))
         assertEquals(State("pause"), stateMachine.current)
     }
@@ -118,7 +120,7 @@ class MorseCodeStateMachineTest {
     @Test
     fun dashToPause() {
         val now = System.currentTimeMillis()
-        val stateMachine = MorseCodeStateMachine(State("dash"))
+        val stateMachine = MorseCodeStateMachine(State("dash"), isProd = false)
         stateMachine.onSignal(Signal(0, now))
         assertEquals(State("pause"), stateMachine.current)
     }
@@ -126,36 +128,37 @@ class MorseCodeStateMachineTest {
     @Test
     fun pauseToSymbolPause() {
         val now = System.currentTimeMillis()
-        val stateMachine = MorseCodeStateMachine(State("pause"))
+        val stateMachine = MorseCodeStateMachine(State("pause"), isProd = false)
         stateMachine.onSignal(Signal(0, now))
         assertEquals(State("pause"), stateMachine.current)
         stateMachine.onSignal(Signal(0, ts = now + 500))
         assertEquals(State("pause-symbol"), stateMachine.current)
         stateMachine.onSignal(Signal(0, ts = now + 1499))
-        assertEquals(State("pause-symbol"), stateMachine.current)
+        assertEquals(State("receiving"), stateMachine.current)
     }
 
     @Test
     fun pauseToLetterPause() {
         val now = System.currentTimeMillis()
-        val stateMachine = MorseCodeStateMachine(State("pause"))
+        val stateMachine = MorseCodeStateMachine(State("pause"), isProd = false)
         stateMachine.onSignal(Signal(0, now))
         assertEquals(State("pause"), stateMachine.current)
         stateMachine.onSignal(Signal(0, ts = now + 1500))
         assertEquals(State("pause-letter"), stateMachine.current)
         stateMachine.onSignal(Signal(0, ts = now + 3499))
-        assertEquals(State("pause-letter"), stateMachine.current)
+        assertEquals(State("receiving"), stateMachine.current)
     }
 
     @Test
     fun pauseToWordPause() {
         val now = System.currentTimeMillis()
-        val stateMachine = MorseCodeStateMachine(State("pause"))
+        val stateMachine = MorseCodeStateMachine(State("pause"), isProd = false)
         stateMachine.onSignal(Signal(0, now))
         assertEquals(State("pause"), stateMachine.current)
         stateMachine.onSignal(Signal(0, ts = now + 3500))
         assertEquals(State("pause-word"), stateMachine.current)
         stateMachine.onSignal(Signal(0, ts = now + 4000))
-        assertEquals(State("pause-word"), stateMachine.current)
+        assertEquals(State("receiving"), stateMachine.current)
     }
+
 }

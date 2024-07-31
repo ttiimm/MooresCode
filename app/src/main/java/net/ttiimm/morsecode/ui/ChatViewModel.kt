@@ -33,4 +33,14 @@ class ChatViewModel() : ViewModel() {
         updateCurrentMessage("")
         return message
     }
+
+    fun onReceived(receiving: String) {
+        if (receiving.isNotBlank()) {
+            val received = Message(receiving, Instant.now(), MessageState.RECEIVED)
+            _uiState.update {
+                it.messages.add(received)
+                it
+            }
+        }
+    }
 }
