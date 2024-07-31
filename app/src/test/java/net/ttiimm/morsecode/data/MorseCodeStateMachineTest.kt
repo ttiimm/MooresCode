@@ -55,7 +55,6 @@ class MorseCodeStateMachineTest {
         assertEquals(State("maybe"), stateMachine.current)
         stateMachine.onSignal(Signal(1, ts = now + 300))
         assertEquals(State("receiving"), stateMachine.current)
-        // on enter, check was in maybe
         assertTrue(result)
     }
 
@@ -106,5 +105,57 @@ class MorseCodeStateMachineTest {
         assertEquals(State("symbol"), stateMachine.current)
         stateMachine.onSignal(Signal(1, ts = now + 1_500))
         assertEquals(State("dash"), stateMachine.current)
+    }
+
+    @Test
+    fun dotToPause() {
+        val now = System.currentTimeMillis()
+        val stateMachine = MorseCodeStateMachine(State("dot"))
+        stateMachine.onSignal(Signal(0, now))
+        assertEquals(State("pause"), stateMachine.current)
+    }
+
+    @Test
+    fun dashToPause() {
+        val now = System.currentTimeMillis()
+        val stateMachine = MorseCodeStateMachine(State("dash"))
+        stateMachine.onSignal(Signal(0, now))
+        assertEquals(State("pause"), stateMachine.current)
+    }
+
+    @Test
+    fun pauseToSymbolPause() {
+        val now = System.currentTimeMillis()
+        val stateMachine = MorseCodeStateMachine(State("pause"))
+        stateMachine.onSignal(Signal(0, now))
+        assertEquals(State("pause"), stateMachine.current)
+        stateMachine.onSignal(Signal(0, ts = now + 500))
+        assertEquals(State("pause-symbol"), stateMachine.current)
+        stateMachine.onSignal(Signal(0, ts = now + 1499))
+        assertEquals(State("pause-symbol"), stateMachine.current)
+    }
+
+    @Test
+    fun pauseToLetterPause() {
+        val now = System.currentTimeMillis()
+        val stateMachine = MorseCodeStateMachine(State("pause"))
+        stateMachine.onSignal(Signal(0, now))
+        assertEquals(State("pause"), stateMachine.current)
+        stateMachine.onSignal(Signal(0, ts = now + 1500))
+        assertEquals(State("pause-letter"), stateMachine.current)
+        stateMachine.onSignal(Signal(0, ts = now + 3499))
+        assertEquals(State("pause-letter"), stateMachine.current)
+    }
+
+    @Test
+    fun pauseToWordPause() {
+        val now = System.currentTimeMillis()
+        val stateMachine = MorseCodeStateMachine(State("pause"))
+        stateMachine.onSignal(Signal(0, now))
+        assertEquals(State("pause"), stateMachine.current)
+        stateMachine.onSignal(Signal(0, ts = now + 3500))
+        assertEquals(State("pause-word"), stateMachine.current)
+        stateMachine.onSignal(Signal(0, ts = now + 4000))
+        assertEquals(State("pause-word"), stateMachine.current)
     }
 }

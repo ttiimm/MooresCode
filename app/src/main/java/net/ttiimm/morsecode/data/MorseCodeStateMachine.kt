@@ -25,6 +25,20 @@ class MorseCodeStateMachine(
         State("symbol") to listOf(
             Guard(State("dot")) { it.isOn && duration < 1_500 },
             Guard(State("dash")) { it.isOn && duration >= 1_500 },
+        ),
+        // dot
+        State("dot") to listOf(
+            Guard(State("pause")) { it.isOff }
+        ),
+        // dash
+        State("dash") to listOf(
+            Guard(State("pause")) { it.isOff }
+        ),
+        // pause
+        State("pause") to listOf(
+            Guard(State("pause-symbol")) { it.isOff && duration >= 500 && duration < 1500 },
+            Guard(State("pause-letter")) { it.isOff && duration >= 1500 && duration < 3500 },
+            Guard(State("pause-word")) { it.isOff && duration >= 3500 },
         )
     )
 
