@@ -6,18 +6,21 @@ import android.graphics.Color
 import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
 import android.graphics.Paint
+import android.util.Log
 import androidx.camera.core.ImageAnalysis
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import net.ttiimm.morsecode.ui.CameraViewModel
 import net.ttiimm.morsecode.ui.Frame
-import net.ttiimm.morsecode.ui.Signal
+import net.ttiimm.morsecode.ui.FrameMetrics
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
 private const val DO_PBP = false
 private const val THRESHOLD = 250F
+
+private const val TAG = "LuminanceAnalyzer"
 
 class LuminanceAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraViewModel) {
 
@@ -31,7 +34,12 @@ class LuminanceAnalyzer(imageAnalysis: ImageAnalysis, cameraViewModel: CameraVie
                     val binaryImage = if (DO_PBP) convertNaive(bitmap) else convert(bitmap)
                     // XXX: filter based on location or size?
                     val luminance = if (DO_PBP) sumBitmapValuesNaive(bitmap) else sumBitmapValues(binaryImage)
-                    val frame = Frame(binaryImage, Signal(luminance))
+
+                    if (luminance > 10) {
+                        Log.d(TAG, "L = ${luminance}")
+                    }
+
+                    val frame = Frame(binaryImage, FrameMetrics(luminance))
                     cameraViewModel.onPreviewChange(frame)
                 }
             }

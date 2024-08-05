@@ -20,6 +20,7 @@ import net.ttiimm.morsecode.data.Message
 import net.ttiimm.morsecode.data.MessageState
 import net.ttiimm.morsecode.data.MorseCodeStateMachine
 import net.ttiimm.morsecode.data.State
+import java.util.Optional
 
 private const val IS_ON = true
 private const val IS_OFF = false
@@ -32,7 +33,7 @@ const val SYMBOL_PAUSE_TIME_UNIT = DOT_TIME_UNIT
 const val LETTER_PAUSE_TIME_UNIT = 3 * DOT_TIME_UNIT
 const val WORD_PAUSE_TIME_UNIT = 7 * DOT_TIME_UNIT
 const val MESSAGE_PAUSE_TIME_UNIT = 8 * DOT_TIME_UNIT
-const val RECEIVING_STOPPED = 10 * DOT_TIME_UNIT
+
 
 val ALPHANUM_TO_MORSE = mapOf(
     Pair('A', ".-"),    Pair('B', "-..."),  Pair('C', "-.-."),  Pair('D', "-.."),   Pair('E', "."),
@@ -45,20 +46,36 @@ val ALPHANUM_TO_MORSE = mapOf(
     Pair('9', "----."), Pair(' ', "/")
 )
 
-private const val TAG = "MorseCodeAnalyzer"
+private const val TAG = "CameraViewModel"
 
 
 data class Frame(
     val preview: Bitmap,
-    val signal: Signal,
-)
+    val metrics: FrameMetrics,
+) {
 
-data class Signal(
+}
+
+data class FrameMetrics(
     val luminance: Int,
     val ts: Long = System.currentTimeMillis(),
 ) {
-    val isOn: Boolean = luminance > 0
+    val isOn: Boolean = luminance >= 100
     val isOff: Boolean = !isOn
+
+    fun isDiff(other: FrameMetrics): Boolean {
+        return isOn != other.isOn
+    }
+}
+
+data class Signal(
+    val isOn: Boolean,
+    val duration: Optional<Long>,
+) {
+    val isOff: Boolean = !isOn
+
+    val isEnd: Boolean = duration.isPresent
+    val isStart: Boolean = !isEnd
 }
 
 data class FpsTracker(
@@ -87,8 +104,9 @@ class CameraViewModel(private val onReceived: (String) -> Unit) : ViewModel() {
         ),
     )
 
+    private lateinit var last: FrameMetrics
+    private val buffer = mutableListOf<Signal>()
     private val fps: FpsTracker = FpsTracker(System.currentTimeMillis())
-
 
     fun onNeedsCamera(
         shouldShow: Boolean,
@@ -185,10 +203,19 @@ class CameraViewModel(private val onReceived: (String) -> Unit) : ViewModel() {
             it.copy(previewImage = frame.preview)
         }
 
-        // XXX: probably should buffer up frames and weed out noise or something?
-        morseCodeStateMachine.onSignal(frame.signal)
 
         val now = System.currentTimeMillis()
+        if (!::last.isInitialized) {
+            last = frame.metrics
+        } else {
+            val duration = frame.metrics.ts - last.ts
+            if (frame.metrics.isDiff(last)) {
+                morseCodeStateMachine.onSignal(Signal(last.isOn, Optional.empty()))
+                morseCodeStateMachine.onSignal(Signal(last.isOn, Optional.of(duration)))
+                last = frame.metrics
+            }
+        }
+
         if (now - fps.ts > ONE_SEC) {
             Log.d(TAG, "fps=${fps.frames}")
             fps.ts = now
