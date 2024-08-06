@@ -268,6 +268,7 @@ fun CameraPreview(
         preview.setSurfaceProvider(previewView.surfaceProvider)
         scrollState.scrollToItem(scrollIndex)
         cameraViewModel.onCameraReady(cameraProvider, camera)
+//        camera.cameraControl.enableTorch(true)
     }
     AndroidView(factory = { previewView })
 
