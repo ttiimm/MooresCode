@@ -180,8 +180,8 @@ fun MorseCodeScreen(
             }
             if (cameraUiState.isShowingAnalysis && cameraUiState.previewImage != null) {
                 Row (modifier = Modifier
-                        .weight(1F)
-                        .fillMaxWidth()
+                    .weight(1F)
+                    .fillMaxWidth()
                 ) {
                     val image = cameraUiState.previewImage!!;
                     Image(
@@ -309,10 +309,15 @@ fun MessageBubbles(
         }
     }
 
-
-    LaunchedEffect(messages.size) {
-        scrollState.scrollToItem(index = messages.size - 1)
+    LaunchedEffect(messages.size, receiving) {
+        val index = if (receiving.isNotBlank()) {
+            messages.size + 1
+        } else {
+            messages.size
+        }
+        scrollState.scrollToItem(index = index)
     }
+
 }
 
 @Composable

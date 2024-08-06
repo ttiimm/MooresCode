@@ -27,7 +27,6 @@ private const val IS_OFF = false
 
 const val DOT_TIME_UNIT = 500L
 // these are all derived off of the DOT_TIME_UNIT
-const val MAYBE_RECEIVING = DOT_TIME_UNIT - 200L
 const val DASH_TIME_UNIT = 3 * DOT_TIME_UNIT
 const val SYMBOL_PAUSE_TIME_UNIT = DOT_TIME_UNIT
 const val LETTER_PAUSE_TIME_UNIT = 3 * DOT_TIME_UNIT
@@ -60,7 +59,7 @@ data class FrameMetrics(
     val luminance: Int,
     val ts: Long = System.currentTimeMillis(),
 ) {
-    val isOn: Boolean = luminance >= 100
+    val isOn: Boolean = luminance >= 2000
     val isOff: Boolean = !isOn
 
     fun isDiff(other: FrameMetrics): Boolean {
@@ -92,6 +91,7 @@ class CameraViewModel(private val onReceived: (String) -> Unit) : ViewModel() {
 
     private val morseCodeStateMachine: MorseCodeStateMachine = MorseCodeStateMachine(
         entrances = mapOf(
+            State("idle") to { receiveFinished() },
             State("receiving") to { onReceiving("") },
             State("dot") to { onReceiving(".") },
             State("dash") to { onReceiving("-") },
@@ -99,13 +99,9 @@ class CameraViewModel(private val onReceived: (String) -> Unit) : ViewModel() {
             State("pause-letter") to { onReceiving("  ") },
             State("pause-word") to { onReceiving("    ") },
         ),
-        exits = mapOf(
-            State("maybe") to { updateReceived() },
-        ),
     )
 
     private lateinit var last: FrameMetrics
-    private val buffer = mutableListOf<Signal>()
     private val fps: FpsTracker = FpsTracker(System.currentTimeMillis())
 
     fun onNeedsCamera(
@@ -174,20 +170,26 @@ class CameraViewModel(private val onReceived: (String) -> Unit) : ViewModel() {
                         camera.cameraControl.enableTorch(IS_ON)
                         delay(DASH_TIME_UNIT)
                         camera.cameraControl.enableTorch(IS_OFF)
+                        Log.d(TAG, "symbol_pause = $SYMBOL_PAUSE_TIME_UNIT")
                         delay(SYMBOL_PAUSE_TIME_UNIT)
                     }
                     '.' -> {
                         camera.cameraControl.enableTorch(IS_ON)
                         delay(DOT_TIME_UNIT)
                         camera.cameraControl.enableTorch(IS_OFF)
+                        Log.d(TAG, "symbol_pause = $SYMBOL_PAUSE_TIME_UNIT")
                         delay(SYMBOL_PAUSE_TIME_UNIT)
-                    }
-                    '/' -> {
-                        delay(WORD_PAUSE_TIME_UNIT)
                     }
                 }
             }
-            delay(LETTER_PAUSE_TIME_UNIT)
+
+            if (letter != "/") {
+                Log.d(TAG, "letter_pause = ${LETTER_PAUSE_TIME_UNIT - SYMBOL_PAUSE_TIME_UNIT}")
+                delay(LETTER_PAUSE_TIME_UNIT - SYMBOL_PAUSE_TIME_UNIT)
+            } else {
+                Log.d(TAG, "word_pause = ${WORD_PAUSE_TIME_UNIT - LETTER_PAUSE_TIME_UNIT}")
+                delay(WORD_PAUSE_TIME_UNIT - LETTER_PAUSE_TIME_UNIT)
+            }
         }
         delay(MESSAGE_PAUSE_TIME_UNIT)
     }
@@ -209,7 +211,12 @@ class CameraViewModel(private val onReceived: (String) -> Unit) : ViewModel() {
             last = frame.metrics
         } else {
             val duration = frame.metrics.ts - last.ts
+            // XXX: would like to get rid of the dual messages
             if (frame.metrics.isDiff(last)) {
+                morseCodeStateMachine.onSignal(Signal(last.isOn, Optional.empty()))
+                morseCodeStateMachine.onSignal(Signal(last.isOn, Optional.of(duration)))
+                last = frame.metrics
+            } else if (frame.metrics.isOff && duration > MESSAGE_PAUSE_TIME_UNIT + 100) {
                 morseCodeStateMachine.onSignal(Signal(last.isOn, Optional.empty()))
                 morseCodeStateMachine.onSignal(Signal(last.isOn, Optional.of(duration)))
                 last = frame.metrics
@@ -232,8 +239,8 @@ class CameraViewModel(private val onReceived: (String) -> Unit) : ViewModel() {
         }
     }
 
-    private fun updateReceived() {
-        Log.d(TAG, "updateReceived `${_uiState.value.receiving}`")
+    private fun receiveFinished() {
+        Log.d(TAG, "receiveFinished `${_uiState.value.receiving}`")
         onReceived(_uiState.value.receiving)
         _uiState.update {
             it.copy(receiving = "")
