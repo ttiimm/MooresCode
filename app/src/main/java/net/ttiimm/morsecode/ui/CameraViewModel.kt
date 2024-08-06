@@ -44,6 +44,7 @@ val ALPHANUM_TO_MORSE = mapOf(
     Pair('4', "....-"), Pair('5', "....."), Pair('6', "-...."), Pair('7', "--..."), Pair('8', "---.."),
     Pair('9', "----."), Pair(' ', "/")
 )
+val MORSE_TO_ALPHANUM = ALPHANUM_TO_MORSE.entries.associateBy({ it.value } , { it.key })
 
 private const val TAG = "CameraViewModel"
 
@@ -96,8 +97,8 @@ class CameraViewModel(private val onReceived: (String) -> Unit) : ViewModel() {
             State("dot") to { onReceiving(".") },
             State("dash") to { onReceiving("-") },
             State("pause-symbol") to { onReceiving(" ") },
-            State("pause-letter") to { onReceiving("  ") },
-            State("pause-word") to { onReceiving("    ") },
+            State("pause-letter") to { onReceiving("\t") },
+            State("pause-word") to { onReceiving("\n") },
         ),
     )
 
@@ -241,9 +242,23 @@ class CameraViewModel(private val onReceived: (String) -> Unit) : ViewModel() {
 
     private fun receiveFinished() {
         Log.d(TAG, "receiveFinished `${_uiState.value.receiving}`")
-        onReceived(_uiState.value.receiving)
+        val translated = translateBack(_uiState.value.receiving)
+        Log.d(TAG, "translated = `$translated`")
+        onReceived(translated)
         _uiState.update {
             it.copy(receiving = "")
         }
+    }
+
+    private fun translateBack(receiving: String): String {
+        var result = ""
+        for (word in receiving.split("\n")) {
+            for (symbolWithSpaces in word.split("\t")) {
+                val symbol = symbolWithSpaces.replace("\\s".toRegex(), "")
+                result += MORSE_TO_ALPHANUM.getOrDefault(symbol, "\n< unknown symbol `$symbol` >\n")
+            }
+            result += " "
+        }
+        return result
     }
 }
