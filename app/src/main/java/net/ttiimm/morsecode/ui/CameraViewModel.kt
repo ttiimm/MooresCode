@@ -60,7 +60,7 @@ data class FrameMetrics(
     val luminance: Int,
     val ts: Long = System.currentTimeMillis(),
 ) {
-    val isOn: Boolean = luminance >= 2000
+    val isOn: Boolean = luminance >= 140
     val isOff: Boolean = !isOn
 
     fun isDiff(other: FrameMetrics): Boolean {
@@ -242,6 +242,7 @@ class CameraViewModel(private val onReceived: (String) -> Unit) : ViewModel() {
 
     private fun receiveFinished() {
         Log.d(TAG, "receiveFinished `${_uiState.value.receiving}`")
+
         val translated = translateBack(_uiState.value.receiving)
         Log.d(TAG, "translated = `$translated`")
         onReceived(translated)
@@ -252,12 +253,17 @@ class CameraViewModel(private val onReceived: (String) -> Unit) : ViewModel() {
 
     private fun translateBack(receiving: String): String {
         var result = ""
-        for (word in receiving.split("\n")) {
-            for (symbolWithSpaces in word.split("\t")) {
-                val symbol = symbolWithSpaces.replace("\\s".toRegex(), "")
-                result += MORSE_TO_ALPHANUM.getOrDefault(symbol, "\n< unknown symbol `$symbol` >\n")
+        if (receiving.isNotBlank() &&
+            !receiving.trim().equals(".") &&
+            !receiving.trim().equals("-")
+            ) {
+            for (word in receiving.split("\n")) {
+                for (symbolWithSpaces in word.split("\t")) {
+                    val symbol = symbolWithSpaces.replace("\\s".toRegex(), "")
+                    result += MORSE_TO_ALPHANUM.getOrDefault(symbol, "\n< unknown symbol `$symbol` >\n")
+                }
+                result += " "
             }
-            result += " "
         }
         return result
     }
