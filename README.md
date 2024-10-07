@@ -6,10 +6,7 @@ The app uses the camera to send and receive messages typed in by a user. When a 
 
 ### Demo
 
-TBD
-
-## Progress
-
+[<img src="https://img.youtube.com/vi/ATB_tAOb8_A/0.jpg" alt="A demo of the Moore's Code app" />](https://www.youtube.com/watch?v=ATB_tAOb8_A)
 
 ## Development Set Up
 
